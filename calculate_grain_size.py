@@ -44,13 +44,11 @@ def calculate_grain_size(image_path,sub_filename):
         equivalent_diameters.append(equivalent_diameter)
 
     # Calculate the average grain size
-    equivalent_diameters=equivalent_diameters[11:-9]
+    equivalent_diameters.sort(reverse=True)
+    equivalent_diameters=equivalent_diameters[10:50]
     average_grain_size = np.mean(equivalent_diameters)
 
     # print(f"average grain size in micron {average_grain_size*conversion_factor}")
-    # print("Equivalent Diameters")
-    equivalent_diameters.sort()
-    # print(len(equivalent_diameters))
     return average_grain_size*conversion_factor
 
 # specify the directory to iterate over
