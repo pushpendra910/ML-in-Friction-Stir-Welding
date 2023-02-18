@@ -7,16 +7,19 @@ def calculate_phase_ratio(image_path):
 
     # Load the image
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-
+    cv2.imshow('original',img)
+    cv2.waitKey(0)
     # Binarize the image using thresholding
-    _, thresh = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
-
+    _, thresh = cv2.threshold(img, 160, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+    cv2.imshow('thresh',thresh)
+    cv2.waitKey(0)
     # Label the connected components in the binary image
     labels = measure.label(thresh)
 
     # Compute the region properties of the labeled regions
     props = measure.regionprops(labels, intensity_image=img)
-
+    cv2.imshow('props',props)
+    cv2.waitKey(0)
     # Find the regions with the highest and lowest mean intensity
     max_intensity = -1
     min_intensity = 256
@@ -41,9 +44,9 @@ def calculate_phase_ratio(image_path):
 
 image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@100X.bmp"
 calculate_phase_ratio(image_path)
-image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@200X.bmp"
-calculate_phase_ratio(image_path)
-image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@500X.bmp"
-calculate_phase_ratio(image_path)
-image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@1000X.bmp"
-calculate_phase_ratio(image_path)
+# image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@200X.bmp"
+# calculate_phase_ratio(image_path)
+# image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@500X.bmp"
+# calculate_phase_ratio(image_path)
+# image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@1000X.bmp"
+# calculate_phase_ratio(image_path)
