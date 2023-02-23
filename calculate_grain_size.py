@@ -5,7 +5,7 @@ from skimage import morphology, measure
 import pandas as pd
 import matplotlib.pyplot as plt
 
-data=pd.DataFrame(columns=['image_name','Grain_size_in_micron'])
+data=pd.DataFrame(columns=['image_name','Grain_size_in_pixels'])
 conversion_factor=1/12.2
 
 def calculate_grain_size(image_path):
@@ -59,7 +59,7 @@ def calculate_grain_size(image_path):
     # Calculate the average diametrical size of the grains
     diameters.sort(reverse=True)
 
-    avg_size = np.mean(diameters[10:-50])
+    avg_size = np.mean(diameters[10:])
     print("Average diametrical size of grains in pixels: ", avg_size)
     # Display the grain size histogram
     # plt.hist(grain_sizes, bins=50)
@@ -94,9 +94,9 @@ for filename in os.listdir(dir_path):
         print('Processing file:', file_path)
         grain_size=calculate_grain_size(file_path)
     
-        sub_data=pd.DataFrame(columns=['image_name','Grain_size_in_micron'])
+        sub_data=pd.DataFrame(columns=['image_name','Grain_size_in_pixels'])
         sub_data['image_name']=[filename]
-        sub_data['Grain_size_in_micron']=[grain_size]
+        sub_data['Grain_size_in_pixels']=[grain_size]
         # print(sub_data)
         data = pd.concat([data, sub_data], ignore_index=True)
         # data.append({image_name:grain_size},ignore_index=Tru
