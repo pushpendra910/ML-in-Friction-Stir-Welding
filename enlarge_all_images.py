@@ -17,19 +17,24 @@ def enlarge(image_path,sub_filename,file_name):
     elif "1000X" in sub_filename:
         X=1
     # Load the image
-    image = cv2.imread(image_path)
-
+    image = cv2.imread("D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@200X.bmp")
+    cv2.imshow('original',image)
+    cv2.waitKey(0)
     enhanced = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
-
+    cv2.imshow('enhanced',enhanced)
+    cv2.waitKey(0)
     # Magnify the image
 
 
     height, width = enhanced.shape[:2]
     new_height, new_width = int(height*X), int(width*X)
     resized = cv2.resize(enhanced, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
-
+    cv2.imshow('resized',resized)
+    cv2.waitKey(0)
     # Crop the image to the original size
     cropped = resized[int((new_height-height)/2):int((new_height+height)/2), int((new_width-width)/2):int((new_width+width)/2)]
+    cv2.imshow('cropped',cropped)
+    cv2.waitKey(0)
     save=save_path+str("\\")+str(file_name)+str("+")+str(sub_filename)
     print(save)
 
