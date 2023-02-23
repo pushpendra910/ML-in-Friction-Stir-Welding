@@ -3,40 +3,82 @@ import numpy as np
 import os
 from skimage import morphology, measure
 import pandas as pd
+import matplotlib.pyplot as plt
 
 data=pd.DataFrame(columns=['image_name','Grain_size_in_micron'])
 conversion_factor=1/12.2
 
 def calculate_grain_size(image_path):
-    # Load the image in grayscale
-    img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    # Load the image
+    img = cv2.imread(image_path)
 
-    # Apply Otsu thresholding to convert to binary image
-    _, binary = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+    # Convert the image to grayscale
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Perform noise reduction by eliminating small regions
-    cleaned = morphology.remove_small_objects(binary.astype(bool), min_size=500)
+    # Perform noise reduction using morphological opening
+    kernel = np.ones((3, 3), np.uint8)
+    opening = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel, iterations=1)
 
-    # Perform morphological closing for grain division
-    closed = morphology.binary_closing(cleaned)
+    # Apply automatic thresholding to obtain a binary image
+    thresh = cv2.threshold(opening, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
 
-    # Find contours of grains
-    contours, _ = cv2.findContours(closed.astype('uint8'), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Perform area-based noise removal
+    a = 30
+    _, labels = cv2.connectedComponents(thresh)
+    unique, counts = np.unique(labels, return_counts=True)
+    for i, count in enumerate(counts):
+        if count <= a:
+            thresh[labels == i] = 0
 
-    # Calculate equivalent diameter of each grain and store in a list
-    equivalent_diameters = []
-    for c in contours:
-        region = measure.regionprops(c.astype(int))[0]
-        equivalent_diameters.append(region.equivalent_diameter)
+    # perform morphological closing for grain separation
+    k = 1
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(k,k))
+    closing = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
 
-    # Calculate average grain size
-    avg_grain_size = sum(equivalent_diameters) / len(equivalent_diameters)
+    # perform dilation before erosion for better grain division
+    kernel = np.ones((1,1), np.uint8)
+    dilation = cv2.dilate(closing, kernel, iterations=1)
+    erosion = cv2.erode(dilation, kernel, iterations=1)
 
-    print("Average Grain Size: ", avg_grain_size)
 
+    # Find the grain size
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(erosion, connectivity=8)
+    # The first label corresponds to the background, so we exclude it from the statistics
+    stats = stats[1:]
+    grain_sizes = stats[:, cv2.CC_STAT_AREA]
 
-    # print(f"average grain size in micron {average_grain_size*conversion_factor}")
-    return avg_grain_size*conversion_factor
+    contours, _ = cv2.findContours(erosion, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Calculate grain sizes and print average grain size
+    diameters = []
+    for i in range(1, labels.max()+1):
+        area = np.sum(labels == i)
+        diameter = 2 * np.sqrt(area/np.pi)
+        diameters.append(diameter)
+
+    # Calculate the average diametrical size of the grains
+    diameters.sort(reverse=True)
+
+    avg_size = np.mean(diameters[10:-50])
+    print("Average diametrical size of grains in pixels: ", avg_size)
+    # Display the grain size histogram
+    # plt.hist(grain_sizes, bins=50)
+    # plt.xlabel('Grain Size')
+    # plt.ylabel('Frequency')
+    # plt.show()
+
+    # Display the grain-separated image
+    # cv2.imshow('Grain Separation', erosion)
+    # cv2.waitKey(0)
+
+    # Display the original image, noise-reduced image, grayscale image, and binary image
+    # cv2.imshow('Original Image', img)
+    # cv2.imshow('Noise-Reduced Image', opening)
+    # cv2.imshow('Grayscale Image', gray)
+    # cv2.imshow('Binary Image', thresh)
+    # cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    return avg_size
 
 # specify the directory to iterate over
 dir_path = "D:\Important\M.Teh thesis\For ML pushpendra\Enlarged_images"
@@ -61,3 +103,9 @@ for filename in os.listdir(dir_path):
         # print(file_path)
 print(data.head())
 data.to_csv("data.csv")
+# image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@200X.bmp"
+# calculate_phase_ratio(image_path)
+# image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@500X.bmp"
+# calculate_phase_ratio(image_path)
+# image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@500X.bmp"
+# calculate_grain_size(image_path)
