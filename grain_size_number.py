@@ -2,88 +2,93 @@ import cv2
 import numpy as np
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
+from PIL import Image
 
 gsn=pd.DataFrame(columns=['image_name','Grain_size_number'])
-def grain_size_number(path,m):
-    # Load image
-    img = cv2.imread(path)
 
-    # Convert image to grayscale
+# Define function to calculate grain size number
+def calculate_grain_size_number(image_file_path, shape='circle', radius=130, magnification=1000):
+    # Load image and convert to grayscale
+    img = cv2.imread(image_file_path)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Perform noise reduction using morphological opening
-    kernel = np.ones((3,3),np.uint8)
-    opening = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)
+    # Apply Gaussian blur to smooth image
+    blur = cv2.GaussianBlur(gray, (5,5), 0)
 
-    # Apply automatic thresholding to obtain a binary image
-    _, thresh = cv2.threshold(opening, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    # Threshold the image to binary
+    _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
 
-    # Perform area based noise removal
-    area_threshold = 50
-    contours, _ = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    for cnt in contours:
-        if cv2.contourArea(cnt) < area_threshold:
-            cv2.drawContours(thresh, [cnt], 0, 0, -1)
+    # Find contours of objects in the image
+    contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Perform morphological closing for grain separation
-    kernel = np.ones((1,1),np.uint8)
-    closing = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    # Create a mask to inscribe the shape on
+    mask = np.zeros_like(gray)
 
-    # Perform dilation before erosion for better grain division and then erosion
-    kernel = np.ones((1,1),np.uint8)
-    dilation = cv2.dilate(closing, kernel, iterations=1)
-    erosion = cv2.erode(dilation, kernel, iterations=1)
-    cv2.imshow("erosion",erosion)
+    # Get center coordinates of the image
+    h, w = gray.shape[:2]
+    center_x, center_y = w//2, h//2
+
+    # Inscribing a shape on mask
+    if shape == 'circle':
+        cv2.circle(mask, (center_x, center_y), radius, 255, -1)
+    elif shape == 'square':
+        x1, y1 = center_x-radius, center_y-radius
+        x2, y2 = center_x+radius, center_y+radius
+        cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+
+    # Apply mask to get only the area of interest
+    masked = cv2.bitwise_and(thresh, thresh, mask=mask)
+
+    # Show the masked image
+    cv2.imshow('Masked Image', masked)
     cv2.waitKey(0)
-    # Inscribe a circle (or other shape) of known area, A, on an image of magnification, M
-    A = 150000  # Known area in square pixels
-    M=m
-    if m==000:
-        M=1000
-    else:
-        M=m
-    # M = 10   # Magnification
-    img=erosion
-    radius = int(np.sqrt(A/np.pi))
-    center = (img.shape[1]//2, img.shape[0]//2)  # Center of the image
-    cv2.circle(img, center, radius, (0, 255, 0), 2)
-    cv2.imshow('circle',img)
+
+    # Create a new mask to get only the grains
+    grain_mask = np.zeros_like(masked)
+
+    # Find contours of grains in the image
+    grain_contours, _ = cv2.findContours(masked, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Draw each grain contour on the grain mask
+    for grain in grain_contours:
+        cv2.drawContours(grain_mask, [grain], -1, 255, -1)
+
+    # Show the grain mask
+    cv2.imshow('Grain Mask', grain_mask)
     cv2.waitKey(0)
-    # Find contours in the binary image
-    contours, hierarchy = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # Count the number of grains that are completely within the area
-    grains_completely_within_area = 0
-    for contour in contours:
-        (x, y, w, h) = cv2.boundingRect(contour)
-        area = cv2.contourArea(contour)
-        if area <= A and area/M**2 > np.pi*radius**2:
-            grains_completely_within_area += 1
-    print("grains_completely_within_area",grains_completely_within_area)
+    # grain_mask=masked ## delete it
+    _, complete_grains = cv2.threshold(grain_mask, 254, 255, cv2.THRESH_BINARY)
+    num_complete_grains = cv2.countNonZero(complete_grains)
+
     # Count the number of grains that are partially within the area
-    grains_partially_within_area = 0
-    for contour in contours:
-        (x, y, w, h) = cv2.boundingRect(contour)
-        area = cv2.contourArea(contour)
-        if area > A and area/M**2 > np.pi*radius**2:
-            grains_partially_within_area += 1
+    _, partial_grains = cv2.threshold(grain_mask, 254, 255, cv2.THRESH_BINARY)
+    num_partial_grains = cv2.countNonZero(partial_grains) - num_complete_grains
 
     # Divide the result from (c) by 2
-    grains_partially_within_area /= 2
-    print("grains_partially_within_area",grains_partially_within_area)
+    num_partial_grains /= 2
+    print(f"number of partial grains {num_partial_grains}")
+    print(f"number of complete grains {num_complete_grains}")
     # Add the result from (d) to the result from (b)
-    total_grains = grains_completely_within_area + grains_partially_within_area
-    print("total_grains",total_grains)
+    num_total_grains = num_complete_grains + num_partial_grains
+
     # Divide the result from (e) by A
-    grains_per_square_pixel = total_grains/A
-    print("grains_per_square_pixel",grains_per_square_pixel)
-    # Convert the result from (f) to grains/in2 @ 100x
-    grains_per_square_inch = grains_per_square_pixel * M**2 / 100
-    print("grains_per_square_inch",grains_per_square_inch)
-    # Use the definition of ASTM grain size number to determine n
-    n = -1.476 + 3.29*np.log10(grains_per_square_inch)
+    A = np.pi * radius**2
+    A=A*1.04*(10**(-9))
+    print(f"A {A}")
+    grains_per_area = num_total_grains / A
+    print(num_total_grains)
+    # Convert the result from (f) to grains/in2 @
+    grains_per_sqaure_inch = grains_per_area * ((magnification / 100) ** 2)
+    print(grains_per_sqaure_inch)
+    n = 0.6989 + np.log10(grains_per_sqaure_inch)
     print("n",n)
-    return n
+
+image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@1000X.bmp"
+
+calculate_grain_size_number(image_path)
 
 dir_path = r"D:\Important\M.Teh thesis\For ML pushpendra\all_images"
 
@@ -109,11 +114,10 @@ dir_path = r"D:\Important\M.Teh thesis\For ML pushpendra\all_images"
 #         # print(file_path)
 # print(gsn.head())
 # gsn.to_csv("grain_size_number.csv")
-image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@200X.bmp"
-grain_size_number(image_path,200)
-image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@500X.bmp"
-grain_size_number(image_path,50)
-image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@1000X.bmp"
-grain_size_number(image_path,000)
-image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@100X.bmp"
-grain_size_number(image_path,100)
+
+# image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@500X.bmp"
+# grain_size_number(image_path,50)
+# image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@1000X.bmp"
+# grain_size_number(image_path,000)
+# image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@100X.bmp"
+# grain_size_number(image_path,100)
