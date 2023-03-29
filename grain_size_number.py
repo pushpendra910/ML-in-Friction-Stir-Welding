@@ -6,11 +6,13 @@ import matplotlib.pyplot as plt
 from PIL import Image
 
 gsn=pd.DataFrame(columns=['image_name','Grain_size_number'])
-
+data=pd.read_csv("D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\data.csv")
 # Define function to calculate grain size number
-def calculate_grain_size_number(image_file_path, shape='circle', radius=130, magnification=1000):
+def calculate_grain_size_number(image_file_path, shape='circle', radius=130, magnification=100):
     # Load image and convert to grayscale
     img = cv2.imread(image_file_path)
+    # cv2.imshow('Original Image', img)
+    # cv2.waitKey(0)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # Apply Gaussian blur to smooth image
@@ -41,8 +43,8 @@ def calculate_grain_size_number(image_file_path, shape='circle', radius=130, mag
     masked = cv2.bitwise_and(thresh, thresh, mask=mask)
 
     # Show the masked image
-    cv2.imshow('Masked Image', masked)
-    cv2.waitKey(0)
+    # cv2.imshow('Masked Image', masked)
+    # cv2.waitKey(0)
 
     # Create a new mask to get only the grains
     grain_mask = np.zeros_like(masked)
@@ -55,8 +57,8 @@ def calculate_grain_size_number(image_file_path, shape='circle', radius=130, mag
         cv2.drawContours(grain_mask, [grain], -1, 255, -1)
 
     # Show the grain mask
-    cv2.imshow('Grain Mask', grain_mask)
-    cv2.waitKey(0)
+    # cv2.imshow('Grain Mask', grain_mask)
+    # cv2.waitKey(0)
 
     # Count the number of grains that are completely within the area
     # grain_mask=masked ## delete it
@@ -69,51 +71,57 @@ def calculate_grain_size_number(image_file_path, shape='circle', radius=130, mag
 
     # Divide the result from (c) by 2
     num_partial_grains /= 2
-    print(f"number of partial grains {num_partial_grains}")
-    print(f"number of complete grains {num_complete_grains}")
+    # print(f"number of partial grains {num_partial_grains}")
+    # print(f"number of complete grains {num_complete_grains}")
     # Add the result from (d) to the result from (b)
     num_total_grains = num_complete_grains + num_partial_grains
 
     # Divide the result from (e) by A
     A = np.pi * radius**2
+    # convert area to square inch
     A=A*1.04*(10**(-9))
-    print(f"A {A}")
+    # print(f"A {A}")
     grains_per_area = num_total_grains / A
-    print(num_total_grains)
+    # print(num_total_grains)
     # Convert the result from (f) to grains/in2 @
     grains_per_sqaure_inch = grains_per_area * ((magnification / 100) ** 2)
-    print(grains_per_sqaure_inch)
+    # print(grains_per_sqaure_inch)
     n = 0.6989 + np.log10(grains_per_sqaure_inch)
     print("n",n)
+    return n
 
-image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@1000X.bmp"
+# image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@100X.bmp"
 
-calculate_grain_size_number(image_path)
+# number=calculate_grain_size_number(image_path,magnification=100)
 
 dir_path = r"D:\Important\M.Teh thesis\For ML pushpendra\all_images"
 
 # # loop through all files and directories in the specified directory
-# for filename in os.listdir(dir_path):
-#     # construct the full file path
-#     file_path = os.path.join(dir_path, filename)
+for filename in os.listdir(dir_path):
+    # construct the full file path
+    file_path = os.path.join(dir_path, filename)
     
-#     # check if the current item is a file
-#     if os.path.isfile(file_path):
-#         # process the file
-#         print('Processing file:', file_path)
-#         magnification=int(filename[-8:-5])
-#         # break
-#         number=grain_size_number(file_path,magnification)
+    # check if the current item is a file
+    if os.path.isfile(file_path):
+        # process the file
+        print('Processing file:', file_path)
+        m=int(filename[-8:-5])
+        if m==000:
+            m=1000
+        # break
+        number=calculate_grain_size_number(file_path,magnification=m)
     
-#         sub_gsn=pd.DataFrame(columns=['image_name','Grain_size_number'])
-#         sub_gsn['image_name']=[filename]
-#         sub_gsn['Grain_size_number']=[number]
-#         # print(sub_data)
-#         gsn = pd.concat([gsn, sub_gsn], ignore_index=True)
-#         # data.append({image_name:grain_size},ignore_index=Tru
-#         # print(file_path)
-# print(gsn.head())
-# gsn.to_csv("grain_size_number.csv")
+        sub_gsn=pd.DataFrame(columns=['image_name','Grain_size_number'])
+        sub_gsn['image_name']=[filename]
+        sub_gsn['Grain_size_number']=[number]
+        # print(sub_data)
+        gsn = pd.concat([gsn, sub_gsn], ignore_index=True)
+        # data.append({image_name:grain_size},ignore_index=Tru
+        # print(file_path)
+print(gsn.head())
+gsn.to_csv("grain_size_number.csv")
+data['Grain_size_number']=gsn['Grain_size_number']
+data.to_csv("data.csv",index=False)
 
 # image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@500X.bmp"
 # grain_size_number(image_path,50)

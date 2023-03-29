@@ -81,13 +81,12 @@ def calculate_grain_size(image_path):
     return avg_size
 
 # specify the directory to iterate over
-dir_path = "D:\Important\M.Teh thesis\For ML pushpendra\Enlarged_images"
+dir_path = r"D:\Important\M.Teh thesis\For ML pushpendra\all_images"
 
 # # loop through all files and directories in the specified directory
 for filename in os.listdir(dir_path):
     # construct the full file path
     file_path = os.path.join(dir_path, filename)
-    
     # check if the current item is a file
     if os.path.isfile(file_path):
         # process the file

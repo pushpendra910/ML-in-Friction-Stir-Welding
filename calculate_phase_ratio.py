@@ -57,7 +57,7 @@ def calculate_phase_ratio(image_path):
     print("Phase ratio:", phase_ratio)
     return ferrite_area,pearlite_area
 
-dir_path = "D:\Important\M.Teh thesis\For ML pushpendra\Enlarged_images"
+dir_path = r"D:\Important\M.Teh thesis\For ML pushpendra\all_images"
 # # loop through all files and directories in the specified directory
 phase=pd.DataFrame(columns=['ferrite','pearlite'])
 for filename in os.listdir(dir_path):
