@@ -101,7 +101,7 @@ for filename in os.listdir(dir_path):
         # data.append({image_name:grain_size},ignore_index=Tru
         # print(file_path)
 print(data.head())
-data.to_csv("data.csv")
+data.to_csv("data.csv",index=False)
 # image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@200X.bmp"
 # calculate_phase_ratio(image_path)
 # image_path="D:\Important\M.Teh thesis\For ML pushpendra\ML for thesis\ML-in-Friction-Stir-Welding\WM1@500X.bmp"
